@@ -9,7 +9,6 @@ HEADER_LENGTH = 10
 HOST = "localhost"  # Server's IP
 PORT = 13000
 
-
 class Client:
     def __init__(self):
         self.socket = None
@@ -110,7 +109,7 @@ class Client:
         self.loginui = GUII.LoginWindow(self, ('Lato', 16))
         self.loginui.run()
         if self.loginui.closewindow==False:
-            self.chatui = GUII.ChatWindow(self, ('Lato', 10))
+            self.chatui = GUII.ChatWindow(self, ('Lato', 11))
             self.chatui.run()
 
     ######## function is called by GUII #########
