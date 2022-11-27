@@ -33,11 +33,11 @@ class Service_client(threading.Thread):
 
     def Send_SMS(self, message):
         com.Send(self.socket, 'sendSMS', {'message': message})
-        self.message_list.write('Me: ' + message + '\n')
+        self.message_list.write('[Me:]\n' + message + '\n')
 
     def Receive_SMS(self, data):
         message = data['message']
-        self.message_list.write(self.peer + ': ' + message + '\n')
+        self.message_list.write("["+self.peer + ':]\n' + message + '\n')
         return message
 
     ###
@@ -46,7 +46,7 @@ class Service_client(threading.Thread):
             s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             s.bind(("", 0))
             s.listen()
-
+            self.message_list.write("You has sent you a file, file location: " + filename +"\n")
             com.Send(self.socket, "sendFile", {
                      'filename': filename, 'host': self.ip, 'port': s.getsockname()[1]})
             conn, addr = s.accept()
@@ -64,7 +64,8 @@ class Service_client(threading.Thread):
         print('File: ', filename)
         host = data['host']
         port = int(data['port'])
-
+        
+        self.message_list.write(self.peer + " has sent you a file, file location: " + filename +"\n")
         s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         s.connect((host, port))
 

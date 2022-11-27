@@ -16,12 +16,12 @@ def Send_File(conn, filename):
 def Receive_File(conn, filename):
     with open(filename, "wb") as out_file:
         while True:
-            print('reading...')
+            # print('reading parts...')
             data = conn.recv(2048)
             if not data:
                 break
             out_file.write(data)
-    print('readed')
+    # print('readed')
     conn.close()
 
 
