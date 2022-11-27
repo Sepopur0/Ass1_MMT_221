@@ -4,14 +4,15 @@ from tkinter import scrolledtext
 import threading
 from tkinter import filedialog
 from tkinter import messagebox
-from PIL import ImageTk, Image
+# from PIL import ImageTk, Image
+
 #screen resolution
 SCREEN_WIDTH = 1000
 SCREEN_HEIGHT = 550
 
 color = ["#07080C", "#8B7E74", "#C7BCA1", "#F1D3B3"]
 
-image = Image.open("background.png")
+# image = Image.open("background.png")
 
 
 class Message_list:
@@ -35,10 +36,11 @@ class Message_list:
         self.messages_list.see(tk.END)
 
     def show(self):
+        print("show")
         self.messages_list.pack(fill=tk.BOTH, expand=tk.YES)
 
     def hide(self):
-        print('okay')
+        print('hide')
         self.messages_list.pack_forget()
 
 
@@ -49,7 +51,7 @@ class Window(object):
         self.font = font
         self.client = client
         self.root = tk.Tk()
-        self.background_image = ImageTk.PhotoImage(image=image)
+        # self.background_image = ImageTk.PhotoImage(image=image)
         self.root.config(bg=color[0])
         self.root.title(title)
         self.build_window()
@@ -71,7 +73,7 @@ class LoginWindow(Window):
         self.root.minsize(400, 350)
         #add background image
         background_label = Label(self.root)
-        background_label.config(image=self.background_image)
+        # background_label.config(image=self.background_image)
         background_label.place(x=0, y=0, relwidth=1, relheight=1)
         # create frames
         upper_frame = Frame(self.root,bg=color[0])
@@ -136,8 +138,7 @@ class LoginWindow(Window):
         # self.add_resgister(middle_frame)
         username = self.username_input.get()
         password = self.password_input.get()
-        # IP = self.IP_input.get()
-        # self.client.configIP(IP)
+        # Got verified result from server
         if not self.client.Register(username, password):
             self.client.close()
         else:
@@ -149,10 +150,9 @@ class LoginWindow(Window):
         self.client.Connect()
         username = self.username_input.get()
         password = self.password_input.get()
-        # IP = self.IP_input.get()
-        # self.client.configIP(IP)
+
+        # Got verified result from server
         if not self.client.Login(username, password):
-            # print('failed')
             messagebox.showerror(
                 "Login status", "Login failed! Please try again or register a new account.")
             self.client.close()
@@ -178,7 +178,8 @@ class ChatWindow(Window):
         self.update()
         self.bool = True
 
-    def show_event(self, event):
+    def showFriend_event(self, event):
+        print(("showFriend_event"))
         self.Chat_button.pack_forget()
         self.Show_button_label.pack(side=LEFT, fill=X, expand=YES)
         self.Friend_request_button_label.pack_forget()
@@ -188,6 +189,7 @@ class ChatWindow(Window):
         self.logins_list.pack(side=LEFT, fill=BOTH, expand=YES)
 
     def Friend_request_event(self, event):
+        print("friend_request_event")
         self.Show_button_label.pack_forget()
         self.Chat_button.pack(side=LEFT, fill=X, expand=YES)
         self.Friend_request_button.pack_forget()
@@ -246,7 +248,7 @@ class ChatWindow(Window):
         self.Lists_Frame = Frame(
             self.left_frame, bg=color[0], pady=3)
         self.Chat_button = Button(self.Lists_Frame, text='Chats',font=self.font,fg=color[3],bg=color[1])
-        self.Chat_button.bind('<Button-1>', self.show_event)
+        self.Chat_button.bind('<Button-1>', self.showFriend_event)
         self.Show_button_label = Label(
             self.Lists_Frame, text='Chats',font=self.font,fg=color[1],bg=color[3])
 
@@ -326,23 +328,27 @@ class ChatWindow(Window):
         self.root.mainloop()
 
     def update(self):
+        print("Update friend list")
+        # show friend list in chat tab
         friendlist = self.client.showFriend()
         self.logins_list.delete(0, 'end')
         self.friend_request_list.delete(0, 'end')
-        print('nice')
         for friend in friendlist:
-            #if friendlist[friend] == 'Online':
-            #    print(friend)
-            self.logins_list.insert(tk.END, friend + ': ' + friendlist[friend])
+            if friendlist[friend] == False:
+                # print(friend)
+                status = "offline"
+            if friendlist[friend] == True:
+                status = "online"
+            self.logins_list.insert(tk.END, friend + ': ' + status)
 
+        # show friend request list in friend requests tab
         friendlist = self.client.showFriendRequest()
-        print('nice')
         for friend in friendlist:
             self.friend_request_list.insert(tk.END, friend)
 
     def on_close(self):
         self.client.close()
-        print('ok')
+        print('Close window')
         self.root.destroy()
 
     def selected_login_event(self, event):
@@ -351,31 +357,27 @@ class ChatWindow(Window):
         target = cursor.split(':')[0]
         status = cursor.split(':')[1][1:]
 
-        if target == None:
-            return
+        # if target is None:
+        #     return
 
         self.Target.config(text=target)
         self.client.target = target
         self.message_list.hide()
-        if target == None:
-            return
+        # if target is None:
+        #     return
 
-        if status == 'Online':
+        if status == 'online':
             if target not in self.client.buff_dict:
                 self.client.startChatTo(target)
-            elif self.client.buff_dict[target].status == False:
+            elif not self.client.buff_dict[target].status:
                 self.client.startChatTo(target)
-
-            print(target)
-            self.message_list = self.client.message_list_dict[target]
-            self.message_list.show()
-
         else:
             if target not in self.client.message_list_dict:
                 self.client.message_list_dict[target] = Message_list(
                     self.Message_box_frame)
-            self.message_list = self.client.message_list_dict[target]
-            self.message_list.show()
+
+        self.message_list = self.client.message_list_dict[target]
+        self.message_list.show()
 
     def select_friend_request(self, event):
         """Set as target currently selected login on login list"""
@@ -384,9 +386,9 @@ class ChatWindow(Window):
             self.friend_request_list.curselection())
         print(target)
         if messagebox.askyesno('Add friend', 'Accept ' + target + '?'):
-            self.client.acceptFriendRequest(target)
+            self.client.acceptFriendRequest(target, True)
         else:
-            self.client.rejectFriendRequest(target)
+            self.client.rejectFriendRequest(target, False)
         self.update()
 
     def send_entry_event(self, event):

@@ -19,9 +19,9 @@ class Server:
         self.numthread = numthread
         # create a centralized database object
         self.database = Database.Database()
-        # create a a primitive lock that is not owned by a particular thread when locked
+        # create a primitive lock that is not owned by a particular thread when locked
         self.lock = threading.Lock()
-        #
+        # {username: <Service>} list of services for verified users created in a session
         self.serviceList = {}
         self.shutdown = False
         # self.admin_socket = None
@@ -60,9 +60,11 @@ class Server:
         # Start thread
         # Args: Service object
         self.lock.acquire()
-        # kill service when the server shutdown or the number of services exceeds numthread
+        # Handle connect from client
+        # Kill service when the server shutdown or the number of services exceeds numthread
         if len(self.serviceList) >= self.numthread or self.shutdown == True:
             self.lock.release()
+            # send "close" event
             service.send_close()
             service.close_response()
             return
@@ -70,10 +72,12 @@ class Server:
 
         # send "accept" event
         service.send_accept()
-        # Login / register
+        # receive login/register data and verify it
         service.verify()
         username = service.username
 
+        # Username is only set when client login/register successfully
+        # End thread when client cannot login or register
         if username is not None:
             self.lock.acquire()
             # save servive by username

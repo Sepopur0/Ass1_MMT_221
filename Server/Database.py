@@ -5,18 +5,13 @@ import threading
 
 class Database:
     def __init__(self):
-        self.userDict = {}              # Key: username --- Val: <User>
-        # ex: userDict['tienanh'] = User tienanh
-
+        # Key: username --- Val: <User>
+        self.userDict = {}
         # Key: username -- Val: list contains all names of friends of username
         self.userFriend = {}
-        # ex: userFriend['tienanh'] = ['khoi', 'huy']
-
         # Key: username -- Val: list contains all names of friend-requests of username
         self.userFriendRequest = {}
-        # ex: userFriendRequest['tienanh'] = ['khoi1', 'huy1']
         self.lock = threading.Lock()
-
         self.port_dict = {}
         self.load()
 
@@ -41,6 +36,7 @@ class Database:
             # retreive data from file
             with open('Data/userDict.pkl', 'rb') as f1:
                 self.userDict = pickle.load(f1)
+                # all user are offline when server first start and no client has connected succesfully
                 self.initOffline()
             with open('Data/userFriend.pkl', 'rb') as f2:
                 self.userFriend = pickle.load(f2)
@@ -109,7 +105,7 @@ class Database:
         else:
             return self.userFriendRequest[username]
 
-    def acceptFriendRequest(self, username2, username1, accept):
+    def handleFriendRequest(self, username2, username1, accept):
         # Args: username1, username2
         # Accept friend request of username1 for username2. Adding them in their friendlist
         if (not self.isRegistered(username1)) or (not self.isRegistered(username2)):
@@ -127,13 +123,13 @@ class Database:
                 listRequest2.remove(username1)
                 self.save()
                 self.lock.release()
+                return True
             else:
                 self.lock.acquire()
                 listRequest2.remove(username1)
                 self.save()
                 self.lock.release()
-
-            return True
+                return False
 
     def Login(self, username, password):
         if not self.isRegistered(username):

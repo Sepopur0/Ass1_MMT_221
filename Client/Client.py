@@ -19,36 +19,39 @@ class Client:
         self.lock = threading.Lock()
         self.target = None
         self.listen_flag = True
+        # get IP Address of Local host
         hostname = socket.gethostname()
         self.ip = socket.gethostbyname(hostname)
 
     def Connect(self):
         # This method will connect client socket to server socket
-
+        # Create a new socket each time button is pressed
         self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.socket.connect((HOST, PORT))
 
         res = com.Receive(self.socket)
         if res['event'] == 'close':
+            print("Server closed.")
             self.close_response()
             return False
 
         return True
 
-    # socket for listening all peer
+    # Create a new socket for listening to all peer
     def Listen(self):
         self.listen_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.listen_socket.bind(("", 0))
 
+        # Inform server that this client started a new socket for peers
         self.setPort()
+        # Create new thread for handling this socket
         self.listen_thread = threading.Thread(target=self.listen_run, args=())
         self.listen_thread.start()
 
     def setPort(self):
         host = self.ip
         port = self.listen_socket.getsockname()[1]
-        print('Set Port: ', host, port)
-
+        # print('Set Port: ', host, port)
         com.Send(self.socket, 'setPort', {'host': host, 'port': port})
 
     # get address of username from server
@@ -67,7 +70,6 @@ class Client:
     def close(self):
         com.Send(self.socket, 'close')
         self.socket.close()
-
         for username in self.buff_dict:
             self.buff_dict[username].assign('close', '')
 
@@ -104,7 +106,7 @@ class Client:
                 self.chatui.update()
                 service.start()
 
-        print('closed: ', self.listen_socket)
+        print('Closed listen socket: ', self.listen_socket)
 
     def run(self):
         self.loginui = GUII.LoginWindow(self, ('Lato', 16))
@@ -117,6 +119,7 @@ class Client:
     def Register(self, username, password):
         com.Send(self.socket, 'Register', {
                  'username': username, 'password': password})
+        # receive verify result from server
         res = com.Receive(self.socket)
 
         if res['data']['success'] == True:
@@ -128,8 +131,8 @@ class Client:
     def Login(self, username, password):
         com.Send(self.socket, 'Login', {
                  'username': username, 'password': password})
+        # receive verify result from server
         res = com.Receive(self.socket)
-        print(res)
 
         if res['data']['success'] == True:
             self.username = username
@@ -156,7 +159,7 @@ class Client:
             return None
 
     def acceptFriendRequest(self, username, accept):
-        com.Send(self.socket, 'acceptFriendRequest', {
+        com.Send(self.socket, 'handleFriendRequest', {
                  'username': username, 'accept': accept})
         res = com.Receive(self.socket)['data']
         if res['success'] == True:
@@ -164,8 +167,14 @@ class Client:
         else:
             return False
 
-    def rejectFriendRequest(self, username2):
-        return True
+    def rejectFriendRequest(self, username, accept):
+        com.Send(self.socket, 'handleFriendRequest', {
+            'username': username, 'accept': accept})
+        res = com.Receive(self.socket)['data']
+        if res['success'] == True:
+            return True
+        else:
+            return False
 
     def addFriend(self, username):
         com.Send(self.socket, 'addFriend', {'username': username})
@@ -176,8 +185,8 @@ class Client:
         else:
             return False
 
-    # def shutdown(self):
-    #     com.Send(self.socket, 'shutdown')
+    def shutdown(self):
+        com.Send(self.socket, 'shutdown')
 
     def startChatTo(self, username):
         addr = self.requestPort(username)
@@ -188,6 +197,7 @@ class Client:
         s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         buff = Buffer.Buffer(self.lock)
 
+        # client have a buffer and a service for each of its peer ?
         if username in self.message_list_dict:
             service = Service_client.Service_client(
                 s, buff, self.message_list_dict[username], self.username, peer=username, ip=self.ip)
