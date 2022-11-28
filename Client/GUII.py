@@ -272,10 +272,10 @@ class ChatWindow(Window):
         self.left_frame.grid_columnconfigure(0, weight=1)
 
         # right frame components
-        self.message_frame = Frame(self.right_frame, bg=color_login[0], pady=3)
-        self.message_frame.grid_rowconfigure(0, weight=1)
-        self.message_frame.grid_columnconfigure(0, weight=1)
-        self.friend_user = Label(self.message_frame,
+        self.header_mess_frame = Frame(self.right_frame, bg=color_login[0], pady=3)
+        self.header_mess_frame.grid_rowconfigure(0, weight=1)
+        self.header_mess_frame.grid_columnconfigure(0, weight=1)
+        self.friend_user = Label(self.header_mess_frame,
                             text='Choose a friend to chat',font=self.font,bg=color_login[3],fg=color_login[1])
         self.friend_user.grid(row=0, column=0, sticky='nswe')
 
@@ -299,7 +299,7 @@ class ChatWindow(Window):
         self.Send_file_button.bind('<Button-1>', self.send_file_event)
         self.Send_file_button.grid(row=1, column=1, sticky='nsew')
 
-        self.message_frame.grid(row=0, column=0, sticky='nsew')
+        self.header_mess_frame.grid(row=0, column=0, sticky='nsew')
         self.Message_box_frame.grid(row=1, column=0, sticky='nsew')
         self.Mess_frame.grid(row=2, column=0, sticky='nsew')
 
