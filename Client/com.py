@@ -34,11 +34,13 @@ def Send(s, event, data={}):
     message = json.dumps(ob)
     message = message.encode('utf-8')
     message_header = f"{len(message):<{HEADER_LENGTH}}".encode('utf-8')
-
+    # if (event != "Idle" and event != "close"):
+    #     print("Send: " + message_header.decode() + " " + message.decode())
     s.send(message_header + message)
 
 
 def Receive(s):
+    # message_header is length of message
     message_header = s.recv(HEADER_LENGTH)
 
     if not len(message_header):
@@ -47,6 +49,12 @@ def Receive(s):
     # Convert header to int value
     message_length = int(message_header.decode('utf-8').strip())
     message = s.recv(message_length).decode('utf-8')
+
     data = json.loads(message)
+    temp = data["event"]
+    # if (temp!= "Idle" and temp!= "close"):
+    #     print("Receive: " + message_header.decode('utf-8') + " " + message)
+
+
 
     return data

@@ -34,7 +34,7 @@ def Send(s, event, data={}):
     message = json.dumps(ob)
     message = message.encode('utf-8')
     message_header = f"{len(message):<{HEADER_LENGTH}}".encode('utf-8')
-
+    print("Send: " + message_header.decode()+" " + message.decode())
     s.send(message_header + message)
 
 
@@ -47,6 +47,9 @@ def Receive(s):
     # Convert header to int value
     message_length = int(message_header.decode('utf-8').strip())
     message = s.recv(message_length).decode('utf-8')
+
+    print("Receive: " + message_header.decode('utf-8') + " " + message)
+
     data = json.loads(message)
 
     return data

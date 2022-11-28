@@ -11,15 +11,17 @@ class Service:
         self.database = database
         self.lock = threading.Lock()
         self.username = None
+        self.password = None
 
     def Register(self, data):
         username = data['username']
         password = data['password']
         success = True
 
-        print(username)
-        print(password)
+        print(f"Register for: {username} with password {password}")
+        # print(password)
 
+        # user don't type in username or password
         if username is None or password is None:
             success = False
         else:
@@ -38,7 +40,9 @@ class Service:
         username = data['username']
         password = data['password']
         success = True
-        print('Login: ', username, password)
+        # print('Login: ', username, password)
+
+        print(f"Login for: {username} with password {password}")
 
         if username is None or password is None:
             success = False
@@ -79,14 +83,14 @@ class Service:
         else:
             com.Send(self.socket, 'addFriend', {'success': False})
 
-    def acceptFriendRequest(self, data):
+    def handleFriendRequest(self, data):
         username = data['username']
         accept = data['accept']
 
-        if self.database.acceptFriendRequest(self.username, username, accept):
-            com.Send(self.socket, 'acceptFriendRequest', {'success': True})
+        if self.database.handleFriendRequest(self.username, username, accept):
+            com.Send(self.socket, 'handleFriendRequest', {'success': True})
         else:
-            com.Send(self.socket, 'acceptFriendRequest', {'success': False})
+            com.Send(self.socket, 'handleFriendRequest', {'success': False})
 
     def setPort(self, data):
         # host, port of who?? may be client is connecting with service but they don't use addr
@@ -94,9 +98,10 @@ class Service:
         port = data['port']
         print('Set Port: ', host, port)
 
+        # save the "listening for peers" socket of this client to database
         self.listen_host = host
         self.listen_port = int(port)
-        print(self.listen_host, self.listen_port)
+        # print(self.listen_host, self.listen_port)
 
         self.database.setPort(
             self.username, self.listen_host, self.listen_port)
@@ -138,9 +143,9 @@ class Service:
                 self.lock.acquire()
                 self.addFriend(data)
                 self.lock.release()
-            elif event == 'acceptFriendRequest':
+            elif event == 'handleFriendRequest':
                 self.lock.acquire()
-                self.acceptFriendRequest(data)
+                self.handleFriendRequest(data)
                 self.lock.release()
             elif event == 'showFriendRequest':
                 self.lock.acquire()
@@ -162,25 +167,29 @@ class Service:
                 if self.username == 'admin':
                     return True
 
-        print('close: ', self.addr)
+        # close the server socket for this service
+        print('Close service of client: ', self.addr)
 
     def send_accept(self):
+        # event = accept no data
         com.Send(self.socket, 'accept')
 
     def send_close(self):
+        # event = close no data
         com.Send(self.socket, 'close')
 
-# user is offiline
+# user is offline
     def close_response(self):
         self.database.offline(self.username)
         self.socket.close()
 
     def verify(self):
-        while True:
-            req = com.Receive(self.socket)
-            if req['event'] == 'Register':
-                self.Register(req['data'])
-                break
-            elif req['event'] == 'Login':
-                self.Login(req['data'])
-                break
+        # while True:
+        # receive event "login" or "register" data from client
+        req = com.Receive(self.socket)
+        if req['event'] == 'Register':
+            self.Register(req['data'])
+            # break
+        elif req['event'] == 'Login':
+            self.Login(req['data'])
+            # break
