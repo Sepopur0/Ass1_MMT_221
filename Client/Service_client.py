@@ -5,8 +5,8 @@ import com
 from pathlib import Path
 
 HEADER_LENGTH = 10
-HOST = "192.168.2.15"
-DEVICE_HOST = '192.168.0.103'
+# HOST = "192.168.2.15"
+# DEVICE_HOST = '192.168.0.103'
 downloads_path = str(Path.home() / "Downloads\\") + '\\'
 
 
@@ -25,6 +25,8 @@ class Service_client(threading.Thread):
         self.buffer = buff
         self.message_list = message_list
         self.ip = ip
+
+        print("socket of this client service thread: " + str(socket))
 
     def connectTo(self, addr):
         self.socket.connect(addr)
@@ -92,7 +94,7 @@ class Service_client(threading.Thread):
                 # receive sms from peer
                 elif event == 'sendSMS':
                     mess = self.Receive_SMS(data)
-                    print('recieve: ', mess)
+                    print('receive: ', mess)
 
                 elif event == 'sendFile':
                     # must insert data
@@ -100,7 +102,7 @@ class Service_client(threading.Thread):
 
                 elif event == 'close':
                     self.close_response()
-                    print('close')
+                    print('close service')
                     break
 
             else:
@@ -113,7 +115,7 @@ class Service_client(threading.Thread):
 
                 elif event == 'close':
                     self.close()
-                    print('close')
+                    print('close service')
                     break
 
                 self.buffer.assign('', '')
