@@ -86,13 +86,14 @@ class Server:
 
             # run service.__call__(), return true when username is admin and sent shutdown
             if service():
+                print('Shut down server.')
                 self.lock.acquire()
                 self.shutdown = True
-                self.socket.close()
+                # self.socket.close()
                 self.lock.release()
-                s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-                s.connect(("", PORT))
-                s.close()
+                # s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                # s.connect(("", PORT))
+                # s.close()
 
             self.lock.acquire()
             del self.serviceList[username]

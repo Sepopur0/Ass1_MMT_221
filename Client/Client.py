@@ -105,6 +105,7 @@ class Client:
                 self.chatui.update()
                 service.start()
 
+        # self.listen_socket.close()
         print('Closed listen socket: ', self.listen_socket)
 
     def run(self):
