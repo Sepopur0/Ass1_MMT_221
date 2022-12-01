@@ -56,7 +56,7 @@ class Server:
         self.shutdownAllService()
         self.socket.close()
 
-    def Verify_thread(self, service):
+    def Verify_thread(self, service:Service):
         # Start thread
         # Args: Service object
         self.lock.acquire()
@@ -96,7 +96,10 @@ class Server:
                 # s.close()
 
             self.lock.acquire()
-            del self.serviceList[username]
+            try:
+                del self.serviceList[username]
+            except:
+                pass
             self.lock.release()
 
     def shutdownAllService(self):

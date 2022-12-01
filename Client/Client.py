@@ -30,7 +30,7 @@ class Client:
 
         res = com.Receive(self.socket)
         if res['event'] == 'close':
-            print("Server closed.")
+            # print("Server closed.")
             self.close_response()
             return False
 
@@ -54,8 +54,8 @@ class Client:
         com.Send(self.socket, 'setPort', {'host': host, 'port': port})
 
     # get address of username from server
-    def requestPort(self, username):
-        com.Send(self.socket, 'requestPort', {'username': username})
+    def requestPort(self, username,group=False):
+        com.Send(self.socket, 'requestPort', {'username': username,'group':group})
         res = com.Receive(self.socket)
 
         if res['data']['success']:
@@ -67,6 +67,9 @@ class Client:
 
     ###################
     def close(self):
+        for username in self.message_list_dict:
+            self.target=username
+            self.chatTo('[From system] User ' + self.username + ' is offline!')
         com.Send(self.socket, 'close')
         self.socket.close()
         for username in self.buff_dict:
@@ -91,22 +94,22 @@ class Client:
 
             if self.listen_flag:
                 buff = Buffer.Buffer(self.lock)
-                message_list = GUII.Message_list(self.chatui.Message_box_frame)
+                #message_list = GUII.Message_list(self.chatui.Message_box_frame)
 
                 service = Service_client.Service_client(
-                    conn, buff, message_list, self.username, ip=self.ip)
+                    conn, buff, self.username,self.message_list_dict, ip=self.ip)
                 self.buff_dict[service.peer] = service.buffer
 
-                if service.peer in self.message_list_dict:
-                    service.message_list = self.message_list_dict[service.peer]
-                else:
-                    self.message_list_dict[service.peer] = service.message_list
+                # if service.peer in self.message_list_dict:
+                #     service.message_list = self.message_list_dict[service.peer]
+                # else:
+                #     self.message_list_dict[service.peer] = service.message_list
 
                 self.chatui.update()
                 service.start()
 
         # self.listen_socket.close()
-        print('Closed listen socket: ', self.listen_socket)
+        # print('Closed listen socket: ', self.listen_socket)
 
     def run(self):
         self.loginui = GUII.LoginWindow(self, ('Lato', 16))
@@ -116,18 +119,27 @@ class Client:
             self.chatui.run()
 
     ######## function is called by GUII #########
-    def Register(self, username, password):
+    def Register(self, username, password): #either group(type=1) or new user(type=0)
         com.Send(self.socket, 'Register', {
                  'username': username, 'password': password})
         # receive verify result from server
         res = com.Receive(self.socket)
 
         if res['data']['success'] == True:
-            self.username = username
             return True
         else:
             return False
 
+    def Creategroup(self,secondmem, groupname):
+        com.Send(self.socket, 'Register group', {
+                 'groupname': groupname,'author':self.username,'secondmem':secondmem})
+        # receive verify result from server
+        res = com.Receive(self.socket)
+        if res['data']['success'] == True:
+            return True
+        else:
+            return False
+    
     def Login(self, username, password):
         com.Send(self.socket, 'Login', {
                  'username': username, 'password': password})
@@ -167,14 +179,14 @@ class Client:
         else:
             return False
 
-    def rejectFriendRequest(self, username, accept):
-        com.Send(self.socket, 'handleFriendRequest', {
-            'username': username, 'accept': accept})
-        res = com.Receive(self.socket)['data']
-        if res['success'] == True:
-            return True
-        else:
-            return False
+    # def rejectFriendRequest(self, username, accept):
+    #     com.Send(self.socket, 'handleFriendRequest', {
+    #         'username': username, 'accept': accept})
+    #     res = com.Receive(self.socket)['data']
+    #     if res['success'] == True:
+    #         return True
+    #     else:
+    #         return False
 
     def addFriend(self, username):
         com.Send(self.socket, 'addFriend', {'username': username})
@@ -185,60 +197,130 @@ class Client:
         else:
             return False
 
+    def fixmember(self, groupname,username,cmd,author): #cmd=='addmember'/'removemember'
+        com.Send(self.socket, cmd, {'groupname': groupname,'username':username,'author':author})
+        res = com.Receive(self.socket)['data']
+
+        if res['success'] == True:
+            return True
+        else:
+            return False
+       
+    def removefriend(self,username,unfriended):
+        com.Send(self.socket, 'unfriend', {'username':username,'unfriended': unfriended})
+        res = com.Receive(self.socket)['data']
+
+        if res['success'] == True:
+            
+            return True
+        else:
+            return False
+    def renamegroup(self,groupname,newname):
+        com.Send(self.socket, 'renamegroup', {'groupname': groupname,'newname':newname})
+        res = com.Receive(self.socket)['data']
+        if res['success'] == True:
+            return True
+        else:
+            return False
     def shutdown(self):
         com.Send(self.socket, 'shutdown')
 
-    def startChatTo(self, username):
+    def startChatTo(self, username,status):
         addr = self.requestPort(username)
 
-        if addr is None:
+        if addr is None and status!='Group':
             return False
 
-        s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        buff = Buffer.Buffer(self.lock)
-
         # client have a buffer and a service for each of its peer ?
-        if username in self.message_list_dict:
-            service = Service_client.Service_client(
-                s, buff, self.message_list_dict[username], self.username, peer=username, ip=self.ip)
-            self.buff_dict[username] = service.buffer
+        if status!='Group':
+            s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            buff = Buffer.Buffer(self.lock)
+            if username in self.message_list_dict:
+                service = Service_client.Service_client(
+                    s, buff, self.username,self.message_list_dict, peer=username, ip=self.ip)
+                self.buff_dict[username] = service.buffer
+            else:
+                message_list = GUII.Message_list(self.chatui.Message_box_frame)
+                service = Service_client.Service_client(
+                    s, buff, self.username,self.message_list_dict, peer=username, ip=self.ip)
+                self.buff_dict[username] = service.buffer
+                self.message_list_dict[username] = message_list
+            # print('startChatTo:', addr)
+            service.connectTo(addr)
+            service.start()
         else:
-            message_list = GUII.Message_list(self.chatui.Message_box_frame)
-            service = Service_client.Service_client(
-                s, buff, message_list, self.username, peer=username, ip=self.ip)
-            self.buff_dict[username] = service.buffer
-            self.message_list_dict[username] = service.message_list
-
-        print('startChatTo:', addr)
-        service.connectTo(addr)
-        service.start()
+            if username not in self.message_list_dict:
+                message_list = GUII.Message_list(self.chatui.Message_box_frame)
+                self.message_list_dict[username] = message_list
+            com.Send(self.socket,'showgroupmem',{'groupname':username})
+            res=com.Receive(self.socket)['data']['friendDict']
+            for member in res:
+                if member !=self.username:
+                    mem_addr=self.requestPort(member,True)
+                    if mem_addr==None:
+                        continue
+                    if member not in self.buff_dict:
+                        mem_s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                        mem_buff = Buffer.Buffer(self.lock)
+                        mem_service = Service_client.Service_client(
+                        mem_s, mem_buff, self.username,self.message_list_dict, peer=member, ip=self.ip)
+                        self.buff_dict[member]=mem_service.buffer
+                        mem_service.connectTo(mem_addr)
+                        mem_service.start()
+                    
+                
         self.chatui.update()
         return True
-
+    
     def chatTo(self, message):
         if self.target is None:
             return
 
         username = self.target
 
-        if username in self.buff_dict and self.buff_dict[username].status == True:
-            self.buff_dict[username].assign('SendSMS', message)
-            print('old chat: ', self.buff_dict[username].string())
+        if username in self.buff_dict and type(self.buff_dict[username].status)!=int and self.buff_dict[username].status == True:
+            self.buff_dict[username].assign('SendSMS', {'message':message,'target':self.username,'self':username})
+            # print('old chat: ', self.buff_dict[username].string())
+        elif username in self.buff_dict and self.buff_dict[username].status == 1:
+            com.Send(self.socket,'showgroupmem',{'groupname':username})
+            res=com.Receive(self.socket)['data']['friendDict']
+            for mem in res:
+                if mem!=self.username and res[mem]==True and mem in self.buff_dict:
+                    self.buff_dict[mem].assign('SendSMS',{'message':message,'target':username,'self':username})
         else:
-            check = self.startChatTo(username)
+            check = self.startChatTo(username,'Online')
             if check:
-                self.buff_dict[username].assign('SendSMS', message)
+                if type(self.buff_dict[username].status)!=int:
+                    self.buff_dict[username].assign('SendSMS', {'message':message,'target':self.username,'self':username})
+                else:
+                    com.Send(self.socket,'showgroupmem',{'groupname':username})
+                    res=com.Receive(self.socket)['data']['friendDict']
+                    for mem in res:
+                        if mem!=self.username and res[mem]==True and mem in self.buff_dict:
+                            self.buff_dict[mem].assign('SendSMS',{'message':message,'target':username,'self':username})
             else:
                 self.chatui.update()
-            print('new chat: ', self.buff_dict[username].string())
+            # print('new chat: ', self.buff_dict[username].string())
 
     def sendFileTo(self, filename):
         username = self.target
-        if username in self.buff_dict and self.buff_dict[username].status == True:
-            self.buff_dict[username].assign('SendFile', filename)
+        if username in self.buff_dict and type(self.buff_dict[username].status)!=int and self.buff_dict[username].status == True:
+            self.buff_dict[username].assign('SendFile', {'filename':filename,'target':self.username,'self':username})
+        elif username in self.buff_dict and self.buff_dict[username].status == 1:
+            com.Send(self.socket,'showgroupmem',{'groupname':username})
+            res=com.Receive(self.socket)['data']['friendDict']
+            for mem in res:
+                if mem!=self.username and res[mem]==True and mem in self.buff_dict:
+                    self.buff_dict[mem].assign('SendSMS',{'filename':filename,'target':username,'self':username})
         else:
             check = self.startChatTo(username)
             if check:
-                self.buff_dict[username].assign('SendFile', filename)
-            else:
-                print("Not friend")
+                self.buff_dict[username].assign('SendFile', {'filename':filename,'target':self.username,'self':username})
+            # else:
+                # print("Not friend")
+
+#idea: create a fake "client" that is a friend of all group members, but this friend will take client ip as its ip. Each member when send to a group, 
+# will actually send to all members of the group. This group will unite all
+# messages into one message_list_dict.
+#when startChatto a group, it will return a list of ip of members
+    

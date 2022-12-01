@@ -29,7 +29,9 @@ class Database:
 
     def initOffline(self):
         for name, user in self.userDict.items():
-            user.status = False
+            if type(user.status)!=int and user.status==True:
+                user.status = False
+            
 
     def load(self):
         try:
@@ -56,7 +58,7 @@ class Database:
             return None
         return self.userDict[username].status
 
-    def addUser(self, username, password):
+    def createUser(self, username, password):
         # Add new user
         if self.isRegistered(username):
             return False
@@ -68,14 +70,45 @@ class Database:
         self.lock.release()
         return True
 
-    def addFriend(self, username1, username2):
-        # Args: username1:sender, username2: receiver
+    def createGroup(self,groupname,firstmem,secondmem):
+        if self.isRegistered(groupname):
+            return False
+        self.lock.acquire()
+        self.userDict[groupname] = User.Group(firstmem,groupname)
+        self.userFriend[groupname] = [firstmem,secondmem]
+        self.userFriend[firstmem].append(groupname)
+        self.userFriend[secondmem].append(groupname)
+        self.userFriendRequest[groupname] = []
+        self.setPort(
+            groupname,'group','group') #fake group port
+        self.save()
+        self.lock.release()
+        return True
+    
+    def renamegroup(self,groupname,newname):
+        if self.isRegistered(newname):
+            return False
+        self.lock.acquire()
+        self.userDict[newname] = self.userDict[groupname]
+        self.userDict[newname].groupname=newname
+        del self.userDict[groupname]
+        self.userFriend[newname]=self.userFriend[groupname] 
+        for friend in self.userFriend[newname]:
+            self.userFriend[friend].append(newname)
+            self.userFriend[friend].remove(groupname)
+        del self.userFriend[groupname]
+        self.save()
+        self.lock.release()
+        return True
+    
+    def addFriend(self, username1, username2): #for both user and group
+        # Args: username1:send request, username2: receive request
         # Add username1 into friendRequest of username2
         if (not self.isRegistered(username1)) or (not self.isRegistered(username2)):  # check registration
             return False
         listFriend = self.userFriend[username2]
         listRequest = self.userFriendRequest[username2]
-        if username1 in listFriend or username1 in listRequest or username1 == username2:
+        if username1 in listFriend or username1 in listRequest or (username1 == username2) or type(self.userDict[username2].status)==int:
             return False
         else:
             self.lock.acquire()
@@ -84,10 +117,29 @@ class Database:
             self.lock.release()
             print(self.userFriendRequest[username2])
             return True
-
+        
+    def removeFriend(self,username1,username2,author=None): #for both user and group
+        if (not self.isRegistered(username1)) or (not self.isRegistered(username2)):  # check registration
+            return False
+        listFriend1 = self.userFriend[username1]
+        listFriend2=self.userFriend[username2]
+        if author==None and ((not (username1 in listFriend2)) or (not (username2 in listFriend1)) or username1 == username2): #user remove user
+            return False
+        elif author!=None and (author!=self.userDict[username1].author or author==username2): #group host remove member or member leave group
+            return False
+        else:
+            self.lock.acquire()
+            listFriend2.remove(username1)
+            listFriend1.remove(username2)
+            self.save()
+            self.lock.release()
+            print(self.userFriendRequest[username2])
+            return True
+    
+    
     def showFriend(self, username):
         # Args: username
-        # return: a ordered dict {friendName: status}, online first
+        # return: a ordered dict {friendName: status}
         if not self.isRegistered(username):
             return None
         friendList = self.userFriend[username]
@@ -100,10 +152,14 @@ class Database:
     def showFriendRequest(self, username):
         # Args: username
         # return: an unordered list of friend requests of user with name username
+        
         if not self.isRegistered(username):
             return None
-        else:
-            return self.userFriendRequest[username]
+        friendRequestList=self.userFriendRequest[username]
+        friendRequestDict={}
+        for friend in friendRequestList:
+            friendRequestDict[friend]=self.getStatus(friend)
+        return friendRequestDict
 
     def handleFriendRequest(self, username2, username1, accept):
         # Args: username1, username2
@@ -150,5 +206,8 @@ class Database:
             return False
         else:
             self.userDict[username].status = False
-            del self.port_dict[username]
+            try:
+                del self.port_dict[username]
+            except:
+                pass
             return True
