@@ -2,7 +2,7 @@ import socket
 import Service_client
 import threading
 import Buffer
-import GUII
+import UI
 import com
 HEADER_LENGTH = 10
 
@@ -100,7 +100,7 @@ class Client:
 
             if self.listen_flag:
                 buff = Buffer.Buffer(self.lock)
-                #message_list = GUII.Message_list(self.chatui.Message_box_frame)
+                #message_list = UI.Message_list(self.chatui.Message_box_frame)
 
                 service = Service_client.Service_client(
                     conn, buff, self.username,self.message_list_dict, ip=self.ip)
@@ -118,13 +118,13 @@ class Client:
         # print('Closed listen socket: ', self.listen_socket)
 
     def run(self):
-        self.loginui = GUII.LoginWindow(self, ('Lato', 16))
+        self.loginui = UI.LoginWindow(self, ('Lato', 16))
         self.loginui.run()
         if self.loginui.closewindow==False:
-            self.chatui = GUII.ChatWindow(self, ('Lato', 11))
+            self.chatui = UI.ChatWindow(self, ('Lato', 11))
             self.chatui.run()
 
-    ######## function is called by GUII #########
+    ######## function is called by UI #########
     def Register(self, username, password): #either group(type=1) or new user(type=0)
         com.Send(self.socket, 'Register', {
                  'username': username, 'password': password})
@@ -247,7 +247,7 @@ class Client:
             #         s, buff, self.username,self.message_list_dict, peer=username, ip=self.ip)
             #     self.buff_dict[username] = service.buffer
             # else:
-                # message_list = GUII.Message_list(self.chatui.Message_box_frame)
+                # message_list = UI.Message_list(self.chatui.Message_box_frame)
             service = Service_client.Service_client(
                     s, buff, self.username,self.message_list_dict, peer=username, ip=self.ip)
             self.buff_dict[username] = service.buffer
@@ -257,7 +257,7 @@ class Client:
             service.start()
         else:
             # if username not in self.message_list_dict:
-            #     message_list = GUII.Message_list(self.chatui.Message_box_frame)
+            #     message_list = UI.Message_list(self.chatui.Message_box_frame)
             #     self.message_list_dict[username] = message_list
             com.Send(self.socket,'showgroupmem',{'groupname':username})
             res=com.Receive(self.socket)['data']['friendDict']

@@ -532,6 +532,7 @@ class ChatWindow(Window):
         # print('selected')
         target = self.friend_request_list.get(
             self.friend_request_list.curselection())
+        target = target.split('] ')[1]
         # print(target)
         if messagebox.askyesno('Add friend', 'Accept ' + target + '?'):
             self.client.acceptFriendRequest(target, True)
