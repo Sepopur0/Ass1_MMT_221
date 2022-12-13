@@ -41,6 +41,8 @@ class Service_client(threading.Thread):
     #     com.Send(self.socket, 'sendGroupSMS', {'message': data['message'],'groupname':data['groupname']})
     
     def Receive_SMS(self, message,target):
+        # if target not in self.mess_list:
+        #     self.mess_list[target]=Message_list()
         self.mess_list[target].write(
             "[" + datetime.now().strftime("%d/%m/%Y %H:%M:%S") + ' ' + self.peer + ':]\n' + message + '\n')
         return message
@@ -56,7 +58,7 @@ class Service_client(threading.Thread):
             self.mess_list[myself].write('[' + datetime.now().strftime("%d/%m/%Y %H:%M:%S") + '] ' +
                 "You has sent a file, file location: " + filename + "\n")
             com.Send(self.socket, "sendFile", {
-                     'filename': filename, 'host': self.ip, 'port': s.getsockname()[1]})
+                     'filename': filename,'target':target, 'host': self.ip, 'port': s.getsockname()[1]})
             conn, addr = s.accept()
 
             thread = threading.Thread(
@@ -69,13 +71,13 @@ class Service_client(threading.Thread):
     # def Send_group_file(self,data):
     #     x=0
     #####
-    def Receive_File(self, data,message_list):
+    def Receive_File(self, data):
         filename = downloads_path + data['filename'].split('/')[-1]
         # print('File: ', filename)
         host = data['host']
         port = int(data['port'])
-
-        message_list.write('[' + datetime.now().strftime("%d/%m/%Y %H:%M:%S") + '] ' +
+        target=data['target']
+        self.mess_list[target].write('[' + datetime.now().strftime("%d/%m/%Y %H:%M:%S") + '] ' +
             self.peer + " has sent you a file, file location: " + filename + "\n")
         s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         s.connect((host, port))
@@ -112,7 +114,7 @@ class Service_client(threading.Thread):
                 #     mess=self.Receive_group_SMS(data)
                 elif event == 'sendFile':
                     # must insert data
-                    self.Receive_File(data['message'],data['target'])
+                    self.Receive_File(data)
                 # elif event=='sendGroupFile':
                 #     self.Receive_group_file(data)
                 elif event == 'close':

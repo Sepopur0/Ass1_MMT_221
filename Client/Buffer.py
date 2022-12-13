@@ -1,9 +1,9 @@
 class Buffer:
-    def __init__(self, lock):
+    def __init__(self, lock,status=True):
         self.lock = lock
         self.cmd = ''
         self. content = ''
-        self.status = True
+        self.status = status
 
     def __len__(self):
         if self.cmd:

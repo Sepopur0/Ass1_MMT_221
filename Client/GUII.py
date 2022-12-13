@@ -467,6 +467,8 @@ class ChatWindow(Window):
         self.friend_request_list.delete(0, 'end')
         # print('update chat list and friendlist')
         for friend in friendlist:
+            if not (friend in self.client.message_list_dict):
+                self.client.message_list_dict[friend]=Message_list(self.Message_box_frame)
             status = "[Offline] "
             if friendlist[friend] ==1 and type(friendlist[friend])==int:
                 status="[Group] "
